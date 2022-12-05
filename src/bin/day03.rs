@@ -54,7 +54,7 @@ fn test_by_group(chunk: &[&str]) -> usize {
             let item = char_to_int(element) as usize;
             
             if i < 2 {
-                // On the two first row, if we meet the char we set the bit first two bit to 1.
+                // On the two first row, if we meet the char we set the first two bit to 1.
                 historgramme[item as usize] |= 1 << i;
             } else if historgramme[item as usize] == 0b011{
                 // If the two first bit is set that mean we get char on the two first row.
