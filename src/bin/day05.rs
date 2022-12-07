@@ -1,6 +1,7 @@
 
-use std::{fmt::{Formatter, self}, collections::VecDeque};
+use std::{fmt::{Formatter, self}};
 use itertools::Itertools;
+use std::cell::RefCell;
 
 use nom::{
     branch::alt,
@@ -9,6 +10,7 @@ use nom::{
     sequence::{delimited, preceded, tuple},
     Finish, IResult,
 };
+#[derive(Clone, Copy)]
 struct Crate(char);
 
 impl fmt::Debug for Crate {
@@ -30,7 +32,8 @@ struct Instruction {
     dst: usize,
 }
 
-struct Piles(Vec<Vec<Crate>>);
+struct Piles(Vec<RefCell<Vec<Crate>>>);
+
 impl fmt::Debug for Piles {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, pile) in self.0.iter().enumerate() {
@@ -42,9 +45,14 @@ impl fmt::Debug for Piles {
 
 impl Piles {
     fn apply(&mut self, ins: Instruction) {
-        for _ in 0..ins.quantity {
-            let el = self.0[ins.src].pop().unwrap();
-            self.0[ins.dst].push(el);
+        for krate in (0..ins.quantity)
+            .map(|_| self.0[ins.src].borrow_mut().pop().unwrap())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+
+        {
+            self.0[ins.dst].borrow_mut().push(krate);
         }
     }
 }
@@ -64,7 +72,12 @@ fn main() {
         })
         .collect();
 
-    let mut piles = Piles(transpose(crate_lines));
+    let mut piles = Piles(
+        transpose(crate_lines)
+            .into_iter()
+            .map(RefCell::new)
+            .collect(),
+    );
     println!("{piles:?}");
 
     assert!(lines.next().unwrap().is_empty()); //Consume the empty line
@@ -81,7 +94,7 @@ fn main() {
 
     println!(
         "answer = {}",
-        piles.0.iter().map(|pile| pile.last().unwrap()).join("")
+        piles.0.iter().map(|pile| *pile.borrow().last().unwrap()).join("")
     );
 }
 
